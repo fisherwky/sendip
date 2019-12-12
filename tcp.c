@@ -13,6 +13,8 @@
  * ChangeLog since 2.4 release:
  * 21/04/2003: fix errors found by valgrind
  * 10/06/2003: fix -tonum (pointed out by Yaniv Kaul <ykaul@checkpoint.com>)
+ * ChangeLog from 2.5 release:
+ * 12/12/2019 allow add arbitrary option by Fisher Wu <fisherwky@gmail.com>
  */
 
 #include <sys/types.h>

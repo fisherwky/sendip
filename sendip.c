@@ -14,6 +14,8 @@
  * ChangeLog since 2.4 release:
  * 21/04/2003 fix errors detected by valgrind
  * 28/07/2003 fix compile error on solaris
+ * ChangeLog from 2.5 release:
+ * 12/12/2019 add save/append packet to pcap file function by Fisher Wu <fisherwky@gmail.com>
  */
 
 #define _SENDIP_MAIN

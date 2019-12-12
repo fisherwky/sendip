@@ -9,6 +9,8 @@
  * ChangeLog since 2.3 release:
  * 23/12/2002 fix bug with -iossr and -iolsr
  * 20/01/2003 fix FreeBSD sendto(): invalid argument error.  Again.
+ * ChangeLog from 2.5 release:
+ * 12/12/2019 allow add arbitrary option by Fisher Wu <fisherwky@gmail.com>
  */
 
 #include <sys/types.h>

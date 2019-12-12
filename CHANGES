@@ -130,3 +130,9 @@ Changes between sendip-2.4 and sendip-2.5
 * Fix compile bug on Solaris (found by Dave Gibelli <dgibelli@tiscali.co.uk>)
 * tcp.so
 - Fix -tonum bug found by Yaniv Kaul <ykaul@checkpoint.com>
+
+Changes between sendip-2.5 and current
+* add save/append packet to pcap file function by Fisher Wu <fisherwky@gmail.com>
+* allow ipv4 add arbitrary option by Fisher Wu <fisherwky@gmail.com>
+* allow tcp add arbitrary option by Fisher Wu <fisherwky@gmail.com>
+
