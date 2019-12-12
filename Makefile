@@ -56,7 +56,7 @@ sendip.spec:	sendip.spec.in VERSION
 .PHONY:	clean install
 
 clean:
-			rm -f *.o *~ *.so $(PROTOS) $(PROGS) core gmon.out
+			rm -f *.o *~ *.so $(PROTOS) $(PROGS) core gmon.out sendip.1 sendip.spec
 
 veryclean:
 			make clean

@@ -22,7 +22,7 @@
 const char opt_char='u';
 
 static void udpcsum(sendip_data *ip_hdr, sendip_data *udp_hdr,
-						  sendip_data *data) {
+                    sendip_data *data) {
 	udp_header *udp = (udp_header *)udp_hdr->data;
 	ip_header  *ip  = (ip_header *)ip_hdr->data;
 	u_int16_t *buf = malloc(12+udp_hdr->alloc_len+data->alloc_len);
@@ -48,7 +48,7 @@ static void udpcsum(sendip_data *ip_hdr, sendip_data *udp_hdr,
 }
 
 static void udp6csum(sendip_data *ipv6_hdr, sendip_data *udp_hdr,
-							sendip_data *data) {
+                     sendip_data *data) {
 	udp_header *udp = (udp_header *)udp_hdr->data;
 	ipv6_header  *ipv6  = (ipv6_header *)ipv6_hdr->data;
 	struct ipv6_pseudo_hdr phdr;
@@ -66,7 +66,7 @@ static void udp6csum(sendip_data *ipv6_hdr, sendip_data *udp_hdr,
 	memcpy(&phdr.source,&ipv6->ip6_src,sizeof(struct in6_addr));
 	memcpy(&phdr.destination,&ipv6->ip6_dst,sizeof(struct in6_addr));
 	phdr.ulp_length=IPPROTO_UDP;
-	
+
 	memcpy(tempbuf,&phdr,sizeof(phdr));
 
 	/* Copy the UDP header and data */
@@ -113,9 +113,9 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], sendip_data *data,
-				  sendip_data *pack) {
+              sendip_data *pack) {
 	udp_header *udp = (udp_header *)pack->data;
-	
+
 	/* Set relevant fields */
 	if(!(pack->modified&UDP_MOD_LEN)) {
 		udp->len=htons(pack->alloc_len+data->alloc_len);
@@ -152,7 +152,7 @@ bool finalize(char *hdrs, sendip_data *headers[], sendip_data *data,
 }
 
 int num_opts() {
-	return sizeof(udp_opts)/sizeof(sendip_option); 
+	return sizeof(udp_opts)/sizeof(sendip_option);
 }
 sendip_option *get_opts() {
 	return udp_opts;

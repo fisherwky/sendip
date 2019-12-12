@@ -61,19 +61,30 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 		ripopt = RIP_OPTION(pack);
 		p=q=arg;
 		/* TODO: if arg is malformed, this could segfault */
-		while(*(q++)!=':') {} /* do nothing */; *(--q)='\0';
+		while(*(q++)!=':') {} /* do nothing */;
+		*(--q)='\0';
 		rippack->addressFamily= htons((p==q)?2:(u_int16_t)strtoul(p, (char **)0, 0));
 		pack->modified |= RIP_MOD_ADDRFAM;
-		p=++q; while(*(q++)!=':') {} /* do nothing */; *(--q)='\0';
+		p=++q;
+		while(*(q++)!=':') {} /* do nothing */;
+		*(--q)='\0';
 		rippack->routeTagOrAuthenticationType=htons((p==q)?0:(u_int16_t)strtoul(p, (char **)0,0));
 		pack->modified |= RIP_MOD_ROUTETAG;
-		p=++q; while(*(q++)!=':') {} /* do nothing */; *(--q)='\0';
+		p=++q;
+		while(*(q++)!=':') {} /* do nothing */;
+		*(--q)='\0';
 		ripopt->address=(p==q)?inet_addr("0.0.0.0"):inet_addr(p);
-		p=++q; while(*(q++)!=':') {} /* do nothing */; *(--q)='\0';
+		p=++q;
+		while(*(q++)!=':') {} /* do nothing */;
+		*(--q)='\0';
 		ripopt->subnetMask=(p==q)?inet_addr("255.255.255.0"):inet_addr(p);
-		p=++q; while(*(q++)!=':') {} /* do nothing */; *(--q)='\0';
+		p=++q;
+		while(*(q++)!=':') {} /* do nothing */;
+		*(--q)='\0';
 		ripopt->nextHop=(p==q)?inet_addr("0.0.0.0"):inet_addr(p);
-		p=++q; while(*(q++)!='\0') {} /* do nothing */; *(--q)='\0';
+		p=++q;
+		while(*(q++)!='\0') {} /* do nothing */;
+		*(--q)='\0';
 		ripopt->metric=htonl((p==q)?16:(u_int32_t)strtoul(p,(char **)0, 0));
 		break;
 	case 'd': /* default request */
@@ -96,7 +107,7 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 }
 
 bool finalize(char *hdrs, sendip_data *headers[], sendip_data *data,
-				  sendip_data *pack) {
+              sendip_data *pack) {
 	if(hdrs[strlen(hdrs)-1] != 'u') {
 		usage_error("Warning: RIP should be contained in a UDP packet\n");
 	}
@@ -105,7 +116,7 @@ bool finalize(char *hdrs, sendip_data *headers[], sendip_data *data,
 }
 
 int num_opts() {
-	return sizeof(rip_opts)/sizeof(sendip_option); 
+	return sizeof(rip_opts)/sizeof(sendip_option);
 }
 sendip_option *get_opts() {
 	return rip_opts;

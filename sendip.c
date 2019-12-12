@@ -49,11 +49,11 @@ typedef struct _s_m {
 	char *name;
 	char optchar;
 	sendip_data * (*initialize)(void);
-	bool (*do_opt)(const char *optstring, const char *optarg, 
-						sendip_data *pack);
+	bool (*do_opt)(const char *optstring, const char *optarg,
+	               sendip_data *pack);
 	bool (*set_addr)(char *hostname, sendip_data *pack);
-	bool (*finalize)(char *hdrs, sendip_data *headers[], sendip_data *data, 
-						  sendip_data *pack);
+	bool (*finalize)(char *hdrs, sendip_data *headers[], sendip_data *data,
+	                 sendip_data *pack);
 	sendip_data *pack;
 	void *handle;
 	sendip_option *opts;
@@ -76,7 +76,7 @@ static sendip_module *last;
 static char *progname;
 
 static int sendpacket(sendip_data *data, char *hostname, int af_type,
-							 bool verbose) {
+                      bool verbose) {
 	_sockaddr_storage *to = malloc(sizeof(_sockaddr_storage));
 	int tolen;
 
@@ -120,16 +120,16 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 		break;
 	}
 
-	if(verbose) { 
-		int i, j;  
+	if(verbose) {
+		int i, j;
 		printf("Final packet data:\n");
 		for(i=0; i<data->alloc_len; ) {
 			for(j=0; j<4 && i+j<data->alloc_len; j++)
-				printf("%02X ", ((unsigned char *)(data->data))[i+j]); 
+				printf("%02X ", ((unsigned char *)(data->data))[i+j]);
 			printf("  ");
 			for(j=0; j<4 && i+j<data->alloc_len; j++) {
 				int c=(int) ((unsigned char *)(data->data))[i+j];
-				printf("%c", isprint(c)?((char *)(data->data))[i+j]:'.'); 
+				printf("%c", isprint(c)?((char *)(data->data))[i+j]:'.');
 			}
 			printf("\n");
 			i+=j;
@@ -143,9 +143,9 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 	}
 	/* Need this for OpenBSD, shouldn't cause problems elsewhere */
 	/* TODO: should make it a command line option */
-	if(af_type == AF_INET) { 
+	if(af_type == AF_INET) {
 		const int on=1;
-		if (setsockopt(s, IPPROTO_IP,IP_HDRINCL,(const void *)&on,sizeof(on)) <0) { 
+		if (setsockopt(s, IPPROTO_IP,IP_HDRINCL,(const void *)&on,sizeof(on)) <0) {
 			perror ("Couldn't setsockopt IP_HDRINCL");
 			free(to);
 			close(s);
@@ -165,13 +165,13 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 
 		int optlen = iphdr->header_len*4-20;
 
-		if(verbose) 
+		if(verbose)
 			printf("Solaris workaround enabled for %d IP option bytes\n", optlen);
 
 		iphdr->tot_len = htons(ntohs(iphdr->tot_len)-optlen);
 
 		if(setsockopt(s,IPPROTO_IP,IP_OPTIONS,
-						  (void *)(((char *)(data->data))+20),optlen)) {
+		              (void *)(((char *)(data->data))+20),optlen)) {
 			perror("Couldn't setsockopt IP_OPTIONS");
 			free(to);
 			close(s);
@@ -188,8 +188,8 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 		if (sent < 0)
 			perror("sendto");
 		else {
-			if(verbose) fprintf(stderr, "Only sent %d of %d bytes to %s\n", 
-									  sent, data->alloc_len, hostname);
+			if(verbose) fprintf(stderr, "Only sent %d of %d bytes to %s\n",
+				                    sent, data->alloc_len, hostname);
 		}
 	}
 	free(to);
@@ -200,7 +200,7 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 static void unload_modules(bool freeit, int verbosity) {
 	sendip_module *mod, *p;
 	p = NULL;
-	for(mod=first;mod!=NULL;mod=mod->next) {
+	for(mod=first; mod!=NULL; mod=mod->next) {
 		if(verbosity) printf("Freeing module %s\n",mod->name);
 		if(p) free(p);
 		p = mod;
@@ -220,7 +220,7 @@ static bool load_module(char *modname) {
 	sendip_option * (*get_opts)(void);
 	char (*get_optchar)(void);
 
-	for(cur=first;cur!=NULL;cur=cur->next) {
+	for(cur=first; cur!=NULL; cur=cur->next) {
 		if(!strcmp(modname,cur->name)) {
 			memcpy(newmod,cur,sizeof(sendip_module));
 			newmod->num_opts=0;
@@ -242,7 +242,7 @@ static bool load_module(char *modname) {
 					char *error3=strdup(dlerror());
 					fprintf(stderr,"Couldn't open module %s, tried:\n",modname);
 					fprintf(stderr,"  %s\n  %s\n  %s\n  %s\n", error0, error1,
-							  error2, error3);
+					        error2, error3);
 					free(newmod);
 					free(error3);
 					return FALSE;
@@ -256,14 +256,14 @@ static bool load_module(char *modname) {
 	strcpy(newmod->name,modname);
 	if(NULL==(newmod->initialize=dlsym(newmod->handle,"initialize"))) {
 		fprintf(stderr,"%s doesn't have an initialize function: %s\n",modname,
-				  dlerror());
+		        dlerror());
 		dlclose(newmod->handle);
 		free(newmod);
 		return FALSE;
 	}
 	if(NULL==(newmod->do_opt=dlsym(newmod->handle,"do_opt"))) {
 		fprintf(stderr,"%s doesn't contain a do_opt function: %s\n",modname,
-				  dlerror());
+		        dlerror());
 		dlclose(newmod->handle);
 		free(newmod);
 		return FALSE;
@@ -333,14 +333,14 @@ static void print_usage(void) {
 
 	printf("\n\nModules available at compile time:\n");
 	printf("\tipv4 ipv6 icmp tcp udp bgp rip ntp\n\n");
-	for(mod=first;mod!=NULL;mod=mod->next) {
+	for(mod=first; mod!=NULL; mod=mod->next) {
 		printf("\n\nArguments for module %s:\n",mod->name);
-		for(i=0;i<mod->num_opts;i++) {
+		for(i=0; i<mod->num_opts; i++) {
 			printf("   -%c%s %c\t%s\n",mod->optchar,
-					  mod->opts[i].optname,mod->opts[i].arg?'x':' ',
-					  mod->opts[i].description);
-			if(mod->opts[i].def) printf("   \t\t  Default: %s\n", 
-												 mod->opts[i].def);
+			       mod->opts[i].optname,mod->opts[i].arg?'x':' ',
+			       mod->opts[i].description);
+			if(mod->opts[i].def) printf("   \t\t  Default: %s\n",
+				                            mod->opts[i].def);
 		}
 	}
 
@@ -366,8 +366,8 @@ int main(int argc, char *const argv[]) {
 	int num_modules=0;
 
 	sendip_data packet;
-	
-	num_opts = 0;	
+
+	num_opts = 0;
 	first=last=NULL;
 
 	progname=argv[0];
@@ -376,7 +376,8 @@ int main(int argc, char *const argv[]) {
 	srandom(time(NULL) ^ (getpid()+(42<<15)));
 
 	/* First, get all the builtin options, and load the modules */
-	gnuopterr=0; gnuoptind=0;
+	gnuopterr=0;
+	gnuoptind=0;
 	while(gnuoptind<argc && (EOF != (optc=gnugetopt(argc,argv,"-p:vd:hf:")))) {
 		switch(optc) {
 		case 'p':
@@ -398,7 +399,7 @@ int main(int argc, char *const argv[]) {
 						datalen=0;
 					}
 					data=(char *)malloc(datalen);
-					for(i=0;i<datalen;i++)
+					for(i=0; i<datalen; i++)
 						data[i]=(char)random();
 					randomflag=TRUE;
 				} else {
@@ -447,7 +448,8 @@ int main(int argc, char *const argv[]) {
 			/* skip any further characters in this option
 				this is so that -tonop doesn't cause a -p option
 			*/
-			nextchar = NULL; gnuoptind++;
+			nextchar = NULL;
+			gnuoptind++;
 			break;
 		}
 	}
@@ -460,10 +462,10 @@ int main(int argc, char *const argv[]) {
 	}
 	memset(opts,'\0',(1+num_opts)*sizeof(struct option));
 	i=0;
-	for(mod=first;mod!=NULL;mod=mod->next) {
+	for(mod=first; mod!=NULL; mod=mod->next) {
 		int j;
 		char *s;   // nasty kludge because option.name is const
-		for(j=0;j<mod->num_opts;j++) {
+		for(j=0; j<mod->num_opts; j++) {
 			/* +2 on next line is one for the char, one for the trailing null */
 			opts[i].name = s = malloc(strlen(mod->opts[j].optname)+2);
 			sprintf(s,"%c%s",mod->optchar,mod->opts[j].optname);
@@ -476,7 +478,7 @@ int main(int argc, char *const argv[]) {
 	if(verbosity) printf("Added %d options\n",num_opts);
 
 	/* Initialize all */
-	for(mod=first;mod!=NULL;mod=mod->next) {
+	for(mod=first; mod!=NULL; mod=mod->next) {
 		if(verbosity) printf("Initializing module %s\n",mod->name);
 		mod->pack=mod->initialize();
 	}
@@ -485,7 +487,7 @@ int main(int argc, char *const argv[]) {
 	gnuopterr=1;
 	gnuoptind=0;
 	while(EOF != (optc=getopt_long_only(argc,argv,"p:vd:hf:",opts,&longindex))) {
-		
+
 		switch(optc) {
 		case 'p':
 		case 'v':
@@ -497,16 +499,16 @@ int main(int argc, char *const argv[]) {
 		case ':':
 			usage=TRUE;
 			fprintf(stderr,"Option %s requires an argument\n",
-					  opts[longindex].name);
+			        opts[longindex].name);
 			break;
 		case '?':
 			usage=TRUE;
 			fprintf(stderr,"Option starting %c not recognized\n",gnuoptopt);
 			break;
 		default:
-			for(mod=first;mod!=NULL;mod=mod->next) {
+			for(mod=first; mod!=NULL; mod=mod->next) {
 				if(mod->optchar==optc) {
-					
+
 					/* Random option arguments */
 					if(gnuoptarg != NULL && !strcmp(gnuoptarg,"r")) {
 						/* need a 32 bit number, but random() is signed and
@@ -529,7 +531,7 @@ int main(int argc, char *const argv[]) {
 		one hostname...
 	*/
 	if(argc != gnuoptind+1) {
- 		usage=TRUE;
+		usage=TRUE;
 		if(argc-gnuoptind < 1) fprintf(stderr,"No hostname specified\n");
 		else fprintf(stderr,"More than one hostname specified\n");
 	} else {
@@ -539,7 +541,7 @@ int main(int argc, char *const argv[]) {
 	}
 
 	/* free opts now we have finished with it */
-	for(i=0;i<(1+num_opts);i++) {
+	for(i=0; i<(1+num_opts); i++) {
 		if(opts[i].name != NULL) free((void *)opts[i].name);
 	}
 	free(opts); /* don't need them any more */
@@ -563,12 +565,12 @@ int main(int argc, char *const argv[]) {
 	packet.data = NULL;
 	packet.alloc_len = 0;
 	packet.modified = 0;
-	for(mod=first;mod!=NULL;mod=mod->next) {
+	for(mod=first; mod!=NULL; mod=mod->next) {
 		packet.alloc_len+=mod->pack->alloc_len;
 	}
 	if(data != NULL) packet.alloc_len+=datalen;
 	packet.data = malloc(packet.alloc_len);
-	for(i=0, mod=first;mod!=NULL;mod=mod->next) {
+	for(i=0, mod=first; mod!=NULL; mod=mod->next) {
 		memcpy((char *)packet.data+i,mod->pack->data,mod->pack->alloc_len);
 		free(mod->pack->data);
 		mod->pack->data = (char *)packet.data+i;
@@ -593,12 +595,12 @@ int main(int argc, char *const argv[]) {
 		d.alloc_len = datalen;
 		d.data = (char *)packet.data+packet.alloc_len-datalen;
 
-		for(i=0,mod=first;mod!=NULL;mod=mod->next,i++) {
+		for(i=0,mod=first; mod!=NULL; mod=mod->next,i++) {
 			hdrs[i]=mod->optchar;
 			headers[i]=mod->pack;
 		}
 
-		for(i=num_modules-1,mod=last;mod!=NULL;mod=mod->prev,i--) {
+		for(i=num_modules-1,mod=last; mod!=NULL; mod=mod->prev,i--) {
 
 			if(verbosity) printf("Finalizing module %s\n",mod->name);
 
@@ -627,8 +629,7 @@ int main(int argc, char *const argv[]) {
 			} else {
 				af_type = AF_INET;
 			}
-		}
-		else if(first->optchar=='i') af_type = AF_INET;
+		} else if(first->optchar=='i') af_type = AF_INET;
 		else if(first->optchar=='6') af_type = AF_INET6;
 		else {
 			fprintf(stderr,"Either IPv4 or IPv6 must be the outermost packet\n");

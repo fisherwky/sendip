@@ -22,7 +22,7 @@ int compact_string(char *data_out) {
 					c+=*data_in-'a'+10;
 				} else {
 					fprintf(stderr,"Character %c invalid in hex data stream\n",
-							  *data_in);
+					        *data_in);
 					return 0;
 				}
 				if( i&1) {
@@ -31,20 +31,22 @@ int compact_string(char *data_out) {
 				} else {
 					c<<=4;   // even nibble - shift to top of byte
 				}
-				data_in++; i++;
+				data_in++;
+				i++;
 			}
 			*data_out=c; // make sure last nibble is added
-			i++; i>>=1;  // i was a nibble count...
+			i++;
+			i>>=1;  // i was a nibble count...
 			return i;
 		} else {
-         /* Octal */
+			/* Octal */
 			char c='\0';
 			while(*data_in) {
 				if(*data_in>='0' && *data_in<='7') {
 					c+=*data_in-'0';
 				} else {
 					fprintf(stderr,"Character %c invalid in octal data stream\n",
-							  *data_in);
+					        *data_in);
 					return 0;
 				}
 				if( (i&3) == 3 ) {
@@ -53,10 +55,12 @@ int compact_string(char *data_out) {
 				} else {        // otherwise just shift it up
 					c<<=2;
 				}
-				data_in++; i++;
+				data_in++;
+				i++;
 			}
 			*data_out=c;     // add partial last byte
-			i+=3; i>>=2;
+			i+=3;
+			i>>=2;
 			return i;
 		}
 	} else {

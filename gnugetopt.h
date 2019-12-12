@@ -76,18 +76,17 @@ extern char *nextchar;
    one).  For long options that have a zero `flag' field, `getopt'
    returns the contents of the `val' field.  */
 
-struct option
-{
+struct option {
 # if defined __STDC__ && __STDC__
-  const char *name;
+	const char *name;
 # else
-  char *name;
+	char *name;
 # endif
-  /* has_arg can't be an enum because some compilers complain about
-     type mismatches in all the code that assumes it is an int.  */
-  int has_arg;
-  int *flag;
-  int val;
+	/* has_arg can't be an enum because some compilers complain about
+	   type mismatches in all the code that assumes it is an int.  */
+	int has_arg;
+	int *flag;
+	int val;
 };
 
 /* Names for the values of the `has_arg' field of `struct option'.  */
@@ -123,15 +122,15 @@ struct option
 
 extern int gnugetopt (int __argc, char *const *__argv, const char *__shortopts);
 extern int getopt_long (int __argc, char *const *__argv, const char *__shortopts,
-		        const struct option *__longopts, int *__longind);
+                        const struct option *__longopts, int *__longind);
 extern int getopt_long_only (int __argc, char *const *__argv,
-			     const char *__shortopts,
-		             const struct option *__longopts, int *__longind);
+                             const char *__shortopts,
+                             const struct option *__longopts, int *__longind);
 
 /* Internal only.  Users should not call this directly.  */
 extern int _getopt_internal (int __argc, char *const *__argv,
-			     const char *__shortopts,
-		             const struct option *__longopts, int *__longind,
-			     int __long_only);
+                             const char *__shortopts,
+                             const struct option *__longopts, int *__longind,
+                             int __long_only);
 
 #endif /* getopt.h */
