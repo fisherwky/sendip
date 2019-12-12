@@ -96,6 +96,12 @@ static void addoption(u_int8_t opt, u_int8_t len, u_int8_t *data,
 	pack->alloc_len += len;
 }
 
+static void addoption_raw(u_int8_t *data, u_int8_t len, sendip_data *pack) {
+    pack->data = realloc(pack->data, pack->alloc_len + len);
+    memcpy((u_int8_t *)pack->data+pack->alloc_len, data,len);
+    pack->alloc_len += len;
+}
+
 sendip_data *initialize(void) {
 	sendip_data *ret = malloc(sizeof(sendip_data));
 	tcp_header *tcp = malloc(sizeof(tcp_header));
@@ -211,6 +217,18 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			else
 				addoption(*data,len+1,data+1,pack);
 			free(data);
+        } else if (!strcmp(opt+2, "raw")) {
+            /* raw options (not add length) */
+            u_int8_t *data = malloc(strlen(arg)+2);
+            int len;
+            if(!data) {
+                fprintf(stderr,"Out of memory!\n");
+                return FALSE;
+            }
+            sprintf((char*)data,"0x%s",arg);
+            len = compact_string((char*)data);
+            addoption_raw(data, len, pack);
+            free(data);
 		} else if (!strcmp(opt+2, "eol")) {
 			/* End of options list RFC 793 kind 0, no length */
 			addoption(0,1,NULL,pack);

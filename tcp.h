@@ -88,6 +88,7 @@ sendip_option tcp_opts[] = {
 	{"c",1,"TCP checksum","Correct"},
 	{"u",1,"TCP urgent pointer","0"},
 	{"onum",1,"TCP option as string of hex bytes (length is always correct)","(no options)"},
+    {"oraw",1,"TCP option as arbitray string of hex bytes","(no options)"},
 	{"oeol",0,"TCP option: end of list", NULL },
 	{"onop",0,"TCP option: no op", NULL },
 	{"omss",1,"TCP option: maximum segment size", NULL },
