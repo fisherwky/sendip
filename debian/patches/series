@@ -1,0 +1,7 @@
+01-hurd+kfreebsd.diff
+02-fix-gcc4.diff
+03-spelling-fix.diff
+04-hardening.diff
+05-as-needed.diff
+06-clang-fix.diff
+07-gcc-5-fix.diff

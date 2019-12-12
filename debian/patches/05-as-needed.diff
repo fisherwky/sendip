@@ -1,0 +1,29 @@
+Description: place libraries after object files in linker call
+Author: Ilya Barygin <randomaction@ubuntu.com>
+
+--- sendip-2.5.orig/Makefile
++++ sendip-2.5/Makefile
+@@ -16,8 +16,9 @@ CFLAGS += -fPIC -fsigned-char -pipe -Wal
+ #-Wcast-align causes problems on solaris, but not serious ones
+ #LDFLAGS=	-g -rdynamic -lm
+ #LDFLAGS_SOLARIS= -g -lsocket -lnsl -lm
+-LDFLAGS_SOLARIS= -g -lsocket -lnsl -lm -ldl
+-LDFLAGS_LINUX = $(LDFLAGS) -ldl
++LDFLAGS_SOLARIS= -g
++LIBS_SOLARIS= -lsocket -lnsl -lm -ldl
++LIBS_LINUX= -ldl
+ LIBCFLAGS= -shared $(LDFLAGS)
+ CC=	gcc
+ 
+@@ -34,9 +35,9 @@ all:	$(GLOBALOBJS) sendip $(PROTOS) send
+ #there has to be a nice way to do this
+ sendip:	sendip.o	gnugetopt.o gnugetopt1.o compact.o
+ 	sh -c "if [ `uname` = Linux -o `uname` = GNU/kFreeBSD -o `uname` = GNU ] ; then \
+-$(CC) -o $@ $(LDFLAGS_LINUX) $(CFLAGS) $+ ; \
++$(CC) -o $@ $(LDFLAGS) $(CFLAGS) $+ $(LIBS_LINUX) ; \
+ elif [ `uname` = SunOS ] ; then \
+-$(CC) -o $@ $(LDFLAGS_SOLARIS) $(CFLAGS) $+ ;\
++$(CC) -o $@ $(LDFLAGS_SOLARIS) $(CFLAGS) $+ $(LIBS_SOLARIS) ;\
+ else \
+ $(CC) -o $@ $(LDFLAGS) $(CFLAGS) $+ ; \
+ fi"

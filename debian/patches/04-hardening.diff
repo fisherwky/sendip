@@ -1,0 +1,26 @@
+--- sendip-2.5/Makefile.orig	2012-06-07 04:06:09.000000000 +0000
++++ sendip-2.5/Makefile	2012-06-07 04:07:13.000000000 +0000
+@@ -8,15 +8,17 @@
+ #For Solaris, you may need
+ #INSTALL=/usr/ucb/install
+ 
+-CFLAGS=	-fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
+-			-Wstrict-prototypes -Wnested-externs -Winline -Werror -g -Wcast-align \
+-			-DSENDIP_LIBS=\"$(LIBDIR)\"
++include /usr/share/dpkg/buildflags.mk
++
++CFLAGS += -fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
++	-Wstrict-prototypes -Wnested-externs -Winline -Werror -g -Wcast-align \
++	-DSENDIP_LIBS=\"$(LIBDIR)\"
+ #-Wcast-align causes problems on solaris, but not serious ones
+-LDFLAGS=	-g -rdynamic -lm
++#LDFLAGS=	-g -rdynamic -lm
+ #LDFLAGS_SOLARIS= -g -lsocket -lnsl -lm
+ LDFLAGS_SOLARIS= -g -lsocket -lnsl -lm -ldl
+-LDFLAGS_LINUX= -g  -rdynamic -ldl -lm
+-LIBCFLAGS= -shared
++LDFLAGS_LINUX = $(LDFLAGS) -ldl
++LIBCFLAGS= -shared $(LDFLAGS)
+ CC=	gcc
+ 
+ PROGS= sendip

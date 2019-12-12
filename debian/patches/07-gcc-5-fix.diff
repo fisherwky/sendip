@@ -1,0 +1,11 @@
+--- sendip-2.5/csum.c	2016-01-08 15:08:58.058914833 +0000
++++ sendip-2.5-fixed/csum.c	2016-01-08 15:09:08.899197769 +0000
+@@ -6,7 +6,7 @@
+  */
+ 
+ #define __USE_BSD    /* GLIBC */
+-#define _BSD_SOURCE  /* LIBC5 */
++#define _DEFAULT_SOURCE  /* LIBC5 */
+ #include <sys/types.h>
+ #include <netinet/in_systm.h>
+ #include <netinet/in.h>

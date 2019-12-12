@@ -1,0 +1,11 @@
+--- sendip-2.5/Makefile.orig	2012-06-07 03:50:58.000000000 +0000
++++ sendip-2.5/Makefile	2012-06-07 03:51:41.000000000 +0000
+@@ -31,7 +31,7 @@
+ 
+ #there has to be a nice way to do this
+ sendip:	sendip.o	gnugetopt.o gnugetopt1.o compact.o
+-	sh -c "if [ `uname` = Linux ] ; then \
++	sh -c "if [ `uname` = Linux -o `uname` = GNU/kFreeBSD -o `uname` = GNU ] ; then \
+ $(CC) -o $@ $(LDFLAGS_LINUX) $(CFLAGS) $+ ; \
+ elif [ `uname` = SunOS ] ; then \
+ $(CC) -o $@ $(LDFLAGS_SOLARIS) $(CFLAGS) $+ ;\
