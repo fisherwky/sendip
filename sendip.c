@@ -34,6 +34,7 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <ctype.h> /* isprint */
+#include <pcap.h>
 #include "sendip_module.h"
 
 #ifdef __sun__  /* for EVILNESS workaround */
@@ -74,6 +75,43 @@ static sendip_module *first;
 static sendip_module *last;
 
 static char *progname;
+static int fd = -1;
+
+//	return 0, success
+static int save_pcap_header(int fd, char opt_char, size_t len)
+{
+	struct pcap_file_header hdr;
+	hdr.magic = 0xa1b2c3d4;
+	hdr.version_major = 2;
+	hdr.version_minor = 4;
+	hdr.thiszone = 0;
+	hdr.sigfigs = 0;
+	hdr.snaplen = 0x40000;
+	if (opt_char == 'e')
+		hdr.linktype = DLT_EN10MB;
+	else //if (opt_char == 'i' || opt_char == '6')
+		hdr.linktype = DLT_RAW;
+	return write(fd, &hdr, sizeof(hdr)) != sizeof(hdr);
+};
+
+//	return 0, success
+static int save_pkt_header(int fd, size_t len)
+{
+	struct my_pkthdr {
+		bpf_u_int32 tv_sec;
+		bpf_u_int32 tv_usec;
+		bpf_u_int32 caplen;
+		bpf_u_int32 len;	
+	} hdr;
+	
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	hdr.tv_sec = tv.tv_sec;
+	hdr.tv_usec = tv.tv_usec;
+	hdr.caplen = len;
+	hdr.len = len;
+	return write(fd, &hdr, sizeof(hdr)) != sizeof(hdr);
+};
 
 static int sendpacket(sendip_data *data, char *hostname, int af_type,
                       bool verbose) {
@@ -136,23 +174,24 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 		}
 	}
 
-	if ((s = socket(af_type, SOCK_RAW, IPPROTO_RAW)) < 0) {
-		perror("Couldn't open RAW socket");
-		free(to);
-		return -1;
-	}
-	/* Need this for OpenBSD, shouldn't cause problems elsewhere */
-	/* TODO: should make it a command line option */
-	if(af_type == AF_INET) {
-		const int on=1;
-		if (setsockopt(s, IPPROTO_IP,IP_HDRINCL,(const void *)&on,sizeof(on)) <0) {
-			perror ("Couldn't setsockopt IP_HDRINCL");
+	if (fd < 0) {
+		if ((s = socket(af_type, SOCK_RAW, IPPROTO_RAW)) < 0) {
+			perror("Couldn't open RAW socket");
 			free(to);
-			close(s);
-			return -2;
+			return -1;
+		}
+		/* Need this for OpenBSD, shouldn't cause problems elsewhere */
+		/* TODO: should make it a command line option */
+		if(af_type == AF_INET) {
+			const int on=1;
+			if (setsockopt(s, IPPROTO_IP,IP_HDRINCL,(const void *)&on,sizeof(on)) <0) {
+				perror ("Couldn't setsockopt IP_HDRINCL");
+				free(to);
+				close(s);
+				return -2;
+			}
 		}
 	}
-
 	/* On Solaris, it seems that the only way to send IP options or packets
 		with a faked IP header length is to:
 		setsockopt(IP_OPTIONS) with the IP option data and size
@@ -180,20 +219,45 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 	}
 #endif /* __sun__ */
 
-	/* Send the packet */
-	sent = sendto(s, (char *)data->data, data->alloc_len, 0, (void *)to, tolen);
-	if (sent == data->alloc_len) {
-		if(verbose) printf("Sent %d bytes to %s\n",sent,hostname);
-	} else {
-		if (sent < 0)
-			perror("sendto");
-		else {
-			if(verbose) fprintf(stderr, "Only sent %d of %d bytes to %s\n",
-				                    sent, data->alloc_len, hostname);
+	if (fd >= 0) {
+		if (lseek(fd, 0, SEEK_END) == 0)
+			save_pcap_header(fd, first->optchar, data->alloc_len);
+		save_pkt_header(fd, data->alloc_len);
+	    sent = write(fd, (char *)data->data, data->alloc_len);
+
+	    if (sent == data->alloc_len) {
+		  if(verbose) printf("Write %d bytes to fd %d\n",sent, fd);
+	    } 
+	    else {
+			if (sent < 0) {
+				perror("write");
+				printf("fd = %d\n", fd);
+			}
+			else {
+				if(verbose) fprintf(stderr, "Only write %d of %d bytes to fd %d\n",
+							sent, data->alloc_len, fd);
+			}
 		}
+		close(fd);
+		fd = -1;
 	}
-	free(to);
-	close(s);
+    else {
+		/* Send the packet */
+		sent = sendto(s, (char *)data->data, data->alloc_len, 0, (void *)to, tolen);
+		if (sent == data->alloc_len) {
+			if(verbose) printf("Sent %d bytes to %s\n",sent,hostname);
+		}
+		else {
+			if (sent < 0)
+				perror("sendto");
+			else {
+				if(verbose) fprintf(stderr, "Only sent %d of %d bytes to %s\n",
+										sent, data->alloc_len, hostname);
+			}
+		}
+		free(to);
+		close(s);
+	}
 	return sent;
 }
 
@@ -314,13 +378,14 @@ out:
 static void print_usage(void) {
 	sendip_module *mod;
 	int i;
-	printf("Usage: %s [-v] [-d data] [-h] [-f datafile] [-p module] [module options] hostname\n",progname);
+	printf("Usage: %s [-v] [-d data] [-h] [-f datafile] [-p module] [module options] [-w pcapfile] hostname\n",progname);
 	printf(" -d data\tadd this data as a string to the end of the packet\n");
 	printf("\t\tData can be:\n");
 	printf("\t\trN to generate N random(ish) data bytes;\n");
 	printf("\t\t0x or 0X followed by hex digits;\n");
 	printf("\t\t0 followed by octal digits;\n");
 	printf("\t\tany other stream of bytes\n");
+	printf(" -w pcapfile\twrite/append packet to PCAP file\n");
 	printf(" -f datafile\tread packet data from file\n");
 	printf(" -h\t\tprint this message\n");
 	printf(" -p module\tload the specified module (see below)\n");
@@ -378,8 +443,11 @@ int main(int argc, char *const argv[]) {
 	/* First, get all the builtin options, and load the modules */
 	gnuopterr=0;
 	gnuoptind=0;
-	while(gnuoptind<argc && (EOF != (optc=gnugetopt(argc,argv,"-p:vd:hf:")))) {
+	while(gnuoptind<argc && (EOF != (optc=gnugetopt(argc,argv,"-p:vd:hf:w:")))) {
 		switch(optc) {
+		case 'w':
+            fd = open(gnuoptarg, O_CREAT|O_APPEND|O_RDWR, 0666);
+            break;
 		case 'p':
 			if(load_module(gnuoptarg))
 				num_modules++;
@@ -486,9 +554,9 @@ int main(int argc, char *const argv[]) {
 	/* Do the get opt */
 	gnuopterr=1;
 	gnuoptind=0;
-	while(EOF != (optc=getopt_long_only(argc,argv,"p:vd:hf:",opts,&longindex))) {
-
+	while(EOF != (optc=getopt_long_only(argc,argv,"p:vd:hf:w:",opts,&longindex))) {
 		switch(optc) {
+		case 'w':
 		case 'p':
 		case 'v':
 		case 'd':
@@ -498,8 +566,7 @@ int main(int argc, char *const argv[]) {
 			break;
 		case ':':
 			usage=TRUE;
-			fprintf(stderr,"Option %s requires an argument\n",
-			        opts[longindex].name);
+			fprintf(stderr,"Option %s requires an argument\n",opts[longindex].name);
 			break;
 		case '?':
 			usage=TRUE;
