@@ -78,6 +78,7 @@ sendip_option ip_opts[] = {
 	{"c",1,"IP checksum (see README)","Correct"},
 
 	{"onum",1,"IP option as string of hex bytes (length is always correct)","(no options)"},
+    {"oraw",1,"IP option as arbitrary string of hex bytes","(no options)"},
 	{"oeol",0,"IP option: end of list",NULL},
 	{"onop",0,"IP option: no-op",NULL},
 	{"orr",1,"IP option: record route. Format: pointer:addr1:addr2:...",NULL},

@@ -92,6 +92,12 @@ static void addoption(u_int8_t copy, u_int8_t class, u_int8_t num,
 	pack->alloc_len += len;
 }
 
+static void addoption_raw(u_int8_t *data, u_int8_t len, sendip_data *pack) {
+    pack->data = realloc(pack->data, pack->alloc_len + len);
+    memcpy((u_int8_t *)pack->data+pack->alloc_len, data,len);
+    pack->alloc_len += len;
+}
+
 sendip_data *initialize(void) {
 	sendip_data *ret = malloc(sizeof(sendip_data));
 	ip_header *ip = malloc(sizeof(ip_header));
@@ -216,6 +222,18 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			num=(*data&0x1F);
 			addoption(cp,cls,num,len+1,data+1,pack);
 			free(data);
+        } else if(!strcmp(opt+2, "raw")) {
+            /* arbitray raw data */
+            u_int8_t len;
+            u_int8_t *data = malloc(strlen(arg)+2);
+            if(!data) {
+                fprintf(stderr,"Out of memory!\n");
+                return FALSE;
+            }
+            sprintf((char*)data,"0x%s",arg);
+            len = compact_string((char*)data);
+            addoption_raw(data, len, pack);
+            free(data);
 		} else if(!strcmp(opt+2, "eol")) {
 			/* End of list */
 			addoption(0,0,0,1,NULL,pack);
