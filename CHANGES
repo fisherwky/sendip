@@ -135,4 +135,8 @@ Changes between sendip-2.5 and current
 * add save/append packet to pcap file function by Fisher Wu <fisherwky@gmail.com>
 * allow ipv4 add arbitrary option by Fisher Wu <fisherwky@gmail.com>
 * allow tcp add arbitrary option by Fisher Wu <fisherwky@gmail.com>
-
+* eth.so
+- add ethernet layer by Fisher Wu <fisherwky@gmail.com>
+* use libpcap to send packet by interface by Fisher Wu <fisherwky@gmail.com>
+* tcp.so 
+-fix tcp checksum when over ipv6 by Fisher Wu <fisherwky@gmail.com>
