@@ -57,8 +57,8 @@ sendip_option ipv6_opts[] = {
 	{"h",1,"IPv6 hop limit","32"},
 	{"v",1,"IP version (you probably don't want to change this"},
 	{"p",1,"IPv6 priority","0"},
-	{"s",1,"IPv6 source address","::1"},
-	{"d",1,"IPv6 destination address","Correct"}
+	{"s",1,"IPv6 source address","Correct"},
+	{"d",1,"IPv6 destination address","::"}
 };
 
 #endif  /* _SENDIP_IPV6_H */

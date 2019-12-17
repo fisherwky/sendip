@@ -11,23 +11,25 @@ INSTALL ?= install
 include /usr/share/dpkg/buildflags.mk
 
 CFLAGS += -fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
-	-Wstrict-prototypes -Wnested-externs -Winline -Werror -g -Wcast-align \
+	-Wstrict-prototypes -Wnested-externs -Winline -Werror -O0 -g -Wcast-align \
 	-DSENDIP_LIBS=\"$(LIBDIR)\"
 #-Wcast-align causes problems on solaris, but not serious ones
 #LDFLAGS=	-g -rdynamic -lm
 #LDFLAGS_SOLARIS= -g -lsocket -lnsl -lm
+LPCAPLIB = -L/usr/lib/x86_64-linux-gnu -lpcap
 LDFLAGS_SOLARIS= -g
 LIBS_SOLARIS= -lsocket -lnsl -lm -ldl
-LIBS_LINUX= -ldl
+LIBS_LINUX= -ldl $(LPCAPLIB)
 LIBCFLAGS= -shared $(LDFLAGS)
 CC=	gcc
 
 PROGS= sendip
-BASEPROTOS= ipv4.so ipv6.so
+BASEPROTOS= eth.so
+ETHPROTOS= ipv4.so ipv6.so
 IPPROTOS= icmp.so tcp.so udp.so
 UDPPROTOS= rip.so ripng.so ntp.so
 TCPPROTOS= bgp.so
-PROTOS= $(BASEPROTOS) $(IPPROTOS) $(UDPPROTOS) $(TCPPROTOS)
+PROTOS= $(BASEPROTOS) $(ETHPROTOS) $(IPPROTOS) $(UDPPROTOS) $(TCPPROTOS)
 GLOBALOBJS= csum.o compact.o
 
 all:	$(GLOBALOBJS) sendip $(PROTOS) sendip.1 sendip.spec

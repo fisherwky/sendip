@@ -2,6 +2,8 @@
  * Taken from code by Antti Tuominen <ajtuomin@tml.hut.fi>
  * ChangeLog since 2.0 release:
  * 09/08/2002 Setting src/dst now works (Pekka Savola <pekkas@netcore.fi>)
+ * ChangeLog from 2.5 release:
+ * 12/12/2019 support previous layer is ethernet by Fisher Wu <fisherwky@gmail.com>
  */
 
 #include <sys/types.h>
@@ -11,8 +13,13 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <sys/types.h>
+#include <ifaddrs.h>
+
 #include "sendip_module.h"
 #include "ipv6.h"
+#include "eth.h"
 
 /* Character that identifies our options
  */
@@ -28,22 +35,37 @@ sendip_data *initialize(void) {
 	return ret;
 }
 
-bool set_addr(char *hostname, sendip_data *pack) {
+
+bool set_addr(char *interface, sendip_data *pack) {
+	bool ret = TRUE;
 	ipv6_header *ipv6 = (ipv6_header *)pack->data;
-	struct hostent *host = gethostbyname2(hostname,AF_INET6);
+
 	if(!(pack->modified & IPV6_MOD_SRC)) {
-		ipv6->ip6_src = in6addr_loopback;
+		struct ifaddrs *ifa_list, *ifa;
+
+		ipv6->ip6_src = in6addr_loopback;	//	default value
+		if (getifaddrs(&ifa_list) == -1) {
+			fprintf(stderr,"Get IPv6 address from %s failure! (getifaddrs)\n", interface);
+			ret = FALSE;
+		}
+		else {
+			for (ifa = ifa_list; ifa != NULL; ifa = ifa->ifa_next) {
+				if (strcmp(ifa->ifa_name, interface) == 0) {
+					if (ifa->ifa_addr != NULL && ifa->ifa_addr->sa_family == AF_INET6) {
+						memcpy(&ipv6->ip6_src, &((struct sockaddr_in6 *)ifa->ifa_addr)->sin6_addr, sizeof(ipv6->ip6_src));
+						break;
+					}
+				}
+			}
+			freeifaddrs(ifa_list);
+		}
 	}
 	if(!(pack->modified & IPV6_MOD_DST)) {
-		if(host==NULL) return FALSE;
-		if(host->h_length != sizeof(ipv6->ip6_dst)) {
-			fprintf(stderr,"IPV6 destination address is the wrong size!!!");
-			return FALSE;
-		}
-		memcpy(&(ipv6->ip6_dst),host->h_addr,host->h_length);
+		ipv6->ip6_dst = in6addr_any;
 	}
-	return TRUE;
+	return ret;
 }
+
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
 	ipv6_header *hdr = (ipv6_header *)pack->data;
@@ -116,7 +138,14 @@ bool finalize(char *hdrs, sendip_data *headers[], sendip_data *data,
 	if(!(pack->modified&IPV6_MOD_HLIM)) {
 		ipv6->ip6_hlim = 32;
 	}
-
+    /* Find enclosing ETH header and modify ether_type */
+    if(hdrs[strlen(hdrs)-1]=='e') {
+        int i = strlen(hdrs)-1;
+        if(!(headers[i]->modified&ETH_MOD_TYPE)) {
+            ((eth_header *)(headers[i]->data))->ether_type=htons(ETHERTYPE_IPV6);
+            headers[i]->modified |= ETH_MOD_TYPE;
+        }
+    }
 	return TRUE;
 }
 

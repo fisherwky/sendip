@@ -115,112 +115,8 @@ static int save_pkt_header(int fd, size_t len)
 	return write(fd, &hdr, sizeof(hdr)) != sizeof(hdr);
 };
 
-static int sendpacket(sendip_data *data, char *hostname, int af_type,
-                      bool verbose) {
-	_sockaddr_storage *to = malloc(sizeof(_sockaddr_storage));
-	int tolen;
-
-	/* socket stuff */
-	int s;                            /* socket for sending       */
-
-	/* hostname stuff */
-	struct hostent *host = NULL;      /* result of gethostbyname2 */
-
-	/* casts for specific protocols */
-	struct sockaddr_in *to4 = (struct sockaddr_in *)to; /* IPv4 */
-	struct sockaddr_in6 *to6 = (struct sockaddr_in6 *)to; /* IPv6 */
-
-	int sent;                         /* number of bytes sent */
-
-	if(to==NULL) {
-		perror("OUT OF MEMORY!\n");
-		return -3;
-	}
-	memset(to, 0, sizeof(_sockaddr_storage));
-
-	if ((host = gethostbyname2(hostname, af_type)) == NULL) {
-		perror("Couldn't get destination host: gethostbyname2()");
-		free(to);
-		return -1;
-	}
-
-	switch (af_type) {
-	case AF_INET:
-		to4->sin_family = host->h_addrtype;
-		memcpy(&to4->sin_addr, host->h_addr, host->h_length);
-		tolen = sizeof(struct sockaddr_in);
-		break;
-	case AF_INET6:
-		to6->sin6_family = host->h_addrtype;
-		memcpy(&to6->sin6_addr, host->h_addr, host->h_length);
-		tolen = sizeof(struct sockaddr_in6);
-		break;
-	default:
-		return -2;
-		break;
-	}
-
-	if(verbose) {
-		int i, j;
-		printf("Final packet data:\n");
-		for(i=0; i<data->alloc_len; ) {
-			for(j=0; j<4 && i+j<data->alloc_len; j++)
-				printf("%02X ", ((unsigned char *)(data->data))[i+j]);
-			printf("  ");
-			for(j=0; j<4 && i+j<data->alloc_len; j++) {
-				int c=(int) ((unsigned char *)(data->data))[i+j];
-				printf("%c", isprint(c)?((char *)(data->data))[i+j]:'.');
-			}
-			printf("\n");
-			i+=j;
-		}
-	}
-
-	if (fd < 0) {
-		if ((s = socket(af_type, SOCK_RAW, IPPROTO_RAW)) < 0) {
-			perror("Couldn't open RAW socket");
-			free(to);
-			return -1;
-		}
-		/* Need this for OpenBSD, shouldn't cause problems elsewhere */
-		/* TODO: should make it a command line option */
-		if(af_type == AF_INET) {
-			const int on=1;
-			if (setsockopt(s, IPPROTO_IP,IP_HDRINCL,(const void *)&on,sizeof(on)) <0) {
-				perror ("Couldn't setsockopt IP_HDRINCL");
-				free(to);
-				close(s);
-				return -2;
-			}
-		}
-	}
-	/* On Solaris, it seems that the only way to send IP options or packets
-		with a faked IP header length is to:
-		setsockopt(IP_OPTIONS) with the IP option data and size
-		decrease the total length of the packet accordingly
-		I'm sure this *shouldn't* work.  But it does.
-	*/
-#ifdef __sun__
-	if((*((char *)(data->data))&0x0F) != 5) {
-		ip_header *iphdr = (ip_header *)data->data;
-
-		int optlen = iphdr->header_len*4-20;
-
-		if(verbose)
-			printf("Solaris workaround enabled for %d IP option bytes\n", optlen);
-
-		iphdr->tot_len = htons(ntohs(iphdr->tot_len)-optlen);
-
-		if(setsockopt(s,IPPROTO_IP,IP_OPTIONS,
-		              (void *)(((char *)(data->data))+20),optlen)) {
-			perror("Couldn't setsockopt IP_OPTIONS");
-			free(to);
-			close(s);
-			return -2;
-		}
-	}
-#endif /* __sun__ */
-
+static int sendpacket(sendip_data *data, char *interface, int af_type, bool verbose) {
+	int sent = -1;
 	if (fd >= 0) {
 		if (lseek(fd, 0, SEEK_END) == 0)
 			save_pcap_header(fd, first->optchar, data->alloc_len);
@@ -243,25 +139,56 @@ static int sendpacket(sendip_data *data, char *hostname, int af_type,
 		close(fd);
 		fd = -1;
 	}
-    else {
-		/* Send the packet */
-		sent = sendto(s, (char *)data->data, data->alloc_len, 0, (void *)to, tolen);
-		if (sent == data->alloc_len) {
-			if(verbose) printf("Sent %d bytes to %s\n",sent,hostname);
+	else {
+		char pcap_errbuf[PCAP_ERRBUF_SIZE] = {0};
+		pcap_t* pcap = pcap_open_live(interface, 96, 0, 0, pcap_errbuf);
+		if(pcap) {
+			if(pcap_inject(pcap, data->data, data->alloc_len)==-1) {
+				fprintf(stderr,"pcap_inject failure! (%s)",pcap_errbuf);
+			}
+			else {
+				sent = data->alloc_len;
+			}
+			pcap_close(pcap);
 		}
 		else {
-			if (sent < 0)
-				perror("sendto");
-			else {
-				if(verbose) fprintf(stderr, "Only sent %d of %d bytes to %s\n",
-										sent, data->alloc_len, hostname);
+			fprintf(stderr,"pcap_open_live failure! (%s)",pcap_errbuf);
+		}
+	}
+
+	if(verbose && sent > 0 ) {
+		int i, j;
+		printf("Final packet data:\n");
+		for(i=0; i<data->alloc_len; ) {
+			for(j=0; j<4 && i+j<data->alloc_len; j++)
+				printf("%02X ", ((unsigned char *)(data->data))[i+j]);
+			printf("  ");
+			for(j=0; j<4 && i+j<data->alloc_len; j++) {
+				int c=(int) ((unsigned char *)(data->data))[i+j];
+				printf("%c", isprint(c)?((char *)(data->data))[i+j]:'.');
+			}
+			printf("\n");
+			i+=j;
+		}
+	}
+	if (sent == data->alloc_len) {
+		if(verbose) {
+			printf("Sent %d bytes from %s\n",sent, interface);
+		}
+	} 
+	else {
+		if (sent < 0) {
+			perror("sendto");
+		}
+		else {
+			if(verbose) {
+				fprintf(stderr, "Only sent %d of %d bytes from %s\n", sent, data->alloc_len, interface);
 			}
 		}
-		free(to);
-		close(s);
 	}
 	return sent;
 }
+
 
 static void unload_modules(bool freeit, int verbosity) {
 	sendip_module *mod, *p;
@@ -380,7 +307,7 @@ out:
 static void print_usage(void) {
 	sendip_module *mod;
 	int i;
-	printf("Usage: %s [-v] [-d data] [-h] [-f datafile] [-p module] [module options] [-w pcapfile] hostname\n",progname);
+	printf("Usage: %s [-v] [-d data] [-h] [-f datafile] [-p module] [module options] [-w pcapfile] interface\n",progname);
 	printf(" -d data\tadd this data as a string to the end of the packet\n");
 	printf("\t\tData can be:\n");
 	printf("\t\trN to generate N random(ish) data bytes;\n");
@@ -410,7 +337,6 @@ static void print_usage(void) {
 				                            mod->opts[i].def);
 		}
 	}
-
 }
 
 int main(int argc, char *const argv[]) {
@@ -604,8 +530,9 @@ int main(int argc, char *const argv[]) {
 		if(argc-gnuoptind < 1) fprintf(stderr,"No hostname specified\n");
 		else fprintf(stderr,"More than one hostname specified\n");
 	} else {
-		if(first && first->set_addr) {
-			first->set_addr(argv[gnuoptind],first->pack);
+		for(i=0, mod=first; mod!=NULL; mod=mod->next) {
+			if (mod->set_addr)
+				mod->set_addr(argv[gnuoptind],mod->pack);
 		}
 	}
 
@@ -634,10 +561,20 @@ int main(int argc, char *const argv[]) {
 	packet.data = NULL;
 	packet.alloc_len = 0;
 	packet.modified = 0;
+    int min_pkt_len=0;
+    int padding_len=0;
+
+	if(first->optchar == 'e')
+		min_pkt_len = 60;	/* min ethernet(64) - FSC(4) */
+
 	for(mod=first; mod!=NULL; mod=mod->next) {
 		packet.alloc_len+=mod->pack->alloc_len;
 	}
 	if(data != NULL) packet.alloc_len+=datalen;
+    if(packet.alloc_len < min_pkt_len) {
+		padding_len = min_pkt_len - packet.alloc_len;
+		packet.alloc_len = min_pkt_len;
+	}
 	packet.data = malloc(packet.alloc_len);
 	for(i=0, mod=first; mod!=NULL; mod=mod->next) {
 		memcpy((char *)packet.data+i,mod->pack->data,mod->pack->alloc_len);
@@ -654,6 +591,11 @@ int main(int argc, char *const argv[]) {
 		datafile=-1;
 	}
 	if(randomflag) free(data);
+
+    /* Add padding */
+    if(padding_len) {
+		memset((char *)packet.data+i, 0, padding_len);
+    }
 
 	/* Finalize from inside out */
 	{
@@ -687,7 +629,7 @@ int main(int argc, char *const argv[]) {
 
 	/* And send the packet */
 	{
-		int af_type;
+		int af_type = AF_INET;
 		if(first==NULL) {
 			if(data == NULL) {
 				fprintf(stderr,"Nothing specified to send!\n");
@@ -695,13 +637,23 @@ int main(int argc, char *const argv[]) {
 				free(packet.data);
 				unload_modules(FALSE,verbosity);
 				return 1;
-			} else {
+			} 
+			else {
 				af_type = AF_INET;
 			}
-		} else if(first->optchar=='i') af_type = AF_INET;
-		else if(first->optchar=='6') af_type = AF_INET6;
+		} 
+		else if(first->optchar=='e') {
+			af_type = AF_PACKET;
+		}
+		else if(first->optchar=='i') {
+			af_type = AF_INET;
+		}
+		else if(first->optchar=='6') {
+			af_type = AF_INET6;
+		}
+		//else if (fd ==-1) {
 		else {
-			fprintf(stderr,"Either IPv4 or IPv6 must be the outermost packet\n");
+			fprintf(stderr,"Either or IPv4 or IPv6 must be the outermost packet\n");
 			unload_modules(FALSE,verbosity);
 			free(packet.data);
 			return 1;

@@ -11,6 +11,7 @@
  * 20/01/2003 fix FreeBSD sendto(): invalid argument error.  Again.
  * ChangeLog from 2.5 release:
  * 12/12/2019 allow add arbitrary option by Fisher Wu <fisherwky@gmail.com>
+ * 12/12/2019 support previous layer is ethernet by Fisher Wu <fisherwky@gmail.com>
  */
 
 #include <sys/types.h>
@@ -20,8 +21,16 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include <sys/types.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+#include <net/if.h>   //ifreq
+#include <unistd.h>   //close
+
 #include "sendip_module.h"
 #include "ipv4.h"
+#include "eth.h"
 
 /* Character that identifies our options
  */
@@ -110,21 +119,28 @@ sendip_data *initialize(void) {
 	return ret;
 }
 
-bool set_addr(char *hostname, sendip_data *pack) {
+bool set_addr(char *interface, sendip_data *pack) {
+	bool ret = TRUE;
 	ip_header *ip = (ip_header *)pack->data;
-	struct hostent *host = gethostbyname2(hostname,AF_INET);
+
 	if(!(pack->modified & IP_MOD_SADDR)) {
-		ip->saddr = inet_addr("127.0.0.1");
+		struct ifreq ifr;
+		int fd = socket(AF_INET, SOCK_DGRAM, 0);
+		ifr.ifr_addr.sa_family = AF_INET;
+		strncpy(ifr.ifr_name, interface, IFNAMSIZ-1);
+		if(ioctl(fd, SIOCGIFADDR, &ifr) != -1) {
+			ip->saddr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr.s_addr;
+		}
+		else {
+			fprintf(stderr,"Get IPv4 address from %s failure!\n", interface);
+			ret = FALSE;
+		}
+		close(fd);
 	}
 	if(!(pack->modified & IP_MOD_DADDR)) {
-		if(host==NULL) return FALSE;
-		if(host->h_length != sizeof(ip->daddr)) {
-			fprintf(stderr,"IPV4 destination address is the wrong size!!!");
-			return FALSE;
-		}
-		memcpy(&(ip->daddr),host->h_addr,host->h_length);
+		ip->daddr = inet_addr("255.255.255.255");
 	}
-	return TRUE;
+	return ret;
 }
 
 bool do_opt(char *opt, char *arg, sendip_data *pack) {
@@ -464,6 +480,14 @@ bool finalize(char *hdrs, sendip_data *headers[], sendip_data *data,
 	}
 	if(!(pack->modified & IP_MOD_CHECK)) {
 		ipcsum(pack);
+	}
+    /* Find enclosing ETH header and modify ether_type */
+	if(hdrs[strlen(hdrs)-1]=='e') {
+		int i = strlen(hdrs)-1;
+		if(!(headers[i]->modified&ETH_MOD_TYPE)) {
+			((eth_header *)(headers[i]->data))->ether_type=htons(ETHERTYPE_IP);
+			headers[i]->modified |= ETH_MOD_TYPE;
+		}
 	}
 	return TRUE;
 }
