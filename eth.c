@@ -73,15 +73,14 @@ bool do_opt(char *opt, char *arg, sendip_data *pack) {
 			fprintf(stderr,"Out of memory!\n");
 			return FALSE;
 		}
-		sprintf((char*)data,"0x%s",arg);
-		len = compact_string((char*)data);
+		strcpy((char*)data,arg);
+		len = compact_mac((char*)data);
 		if(len != sizeof(struct ether_addr)) {
 			fprintf(stderr,"MAC address length error!\n");
 			free(data);
 			return FALSE;
 		}
-
-		if (opt[1] == 's') {
+		if(opt[1] == 's') {
 			memcpy(&(eth->ether_shost), data, sizeof(eth->ether_shost));
 			pack->modified |= ETH_MOD_SHOST;
 		}

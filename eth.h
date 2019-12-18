@@ -41,7 +41,7 @@ typedef struct
  */
 sendip_option eth_opts[] = {
     {"s",1,"Source MAC address","Correct"},
-    {"d",1,"Destination MAC address","ffffffffffff"},
+    {"d",1,"Destination MAC address","ff:ff:ff:ff:ff:ff (ffffffffffff)"},
     {"t",1,"Packet type","Correct"}
 };
 

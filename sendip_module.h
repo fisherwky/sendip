@@ -39,5 +39,6 @@ char get_optchar(void);
 
 extern u_int16_t csum(u_int16_t *packet, int packlen);
 extern int compact_string(char *data_out);
+extern int compact_mac(char *data_out);
 
 #endif  /* _SENDIP_MODULE_H */
