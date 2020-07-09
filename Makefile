@@ -8,7 +8,7 @@ INSTALL ?= install
 #For Solaris, you may need
 #INSTALL=/usr/ucb/install
 
-include /usr/share/dpkg/buildflags.mk
+#include /usr/share/dpkg/buildflags.mk
 
 CFLAGS += -fPIC -fsigned-char -pipe -Wall -Wpointer-arith -Wwrite-strings \
 	-Wstrict-prototypes -Wnested-externs -Winline -Werror -O0 -g -Wcast-align \
