@@ -481,13 +481,24 @@ bool finalize(char *hdrs, sendip_data *headers[], sendip_data *data,
 	if(!(pack->modified & IP_MOD_CHECK)) {
 		ipcsum(pack);
 	}
-    /* Find enclosing ETH header and modify ether_type */
-	if(hdrs[strlen(hdrs)-1]=='e') {
-		int i = strlen(hdrs)-1;
+	int i = strlen(hdrs)-1;
+	switch (hdrs[strlen(hdrs)-1]) {
+	/* Find enclosing ETH header and modify ether_type */
+	case 'e':
 		if(!(headers[i]->modified&ETH_MOD_TYPE)) {
 			((eth_header *)(headers[i]->data))->ether_type=htons(ETHERTYPE_IP);
 			headers[i]->modified |= ETH_MOD_TYPE;
 		}
+		break;
+	case 'i':
+	/* IP-in-IP */
+		if(!(headers[i]->modified&IP_MOD_PROTOCOL)) {
+			((ip_header *)(headers[i]->data))->protocol=4;
+			headers[i]->modified |= IP_MOD_PROTOCOL;
+		}
+		break;
+	default:
+		break;
 	}
 	return TRUE;
 }
