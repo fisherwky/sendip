@@ -140,3 +140,5 @@ Changes between sendip-2.5 and current
 * use libpcap to send packet by interface by Fisher Wu <fisherwky@gmail.com>
 * tcp.so 
 -fix tcp checksum when over ipv6 by Fisher Wu <fisherwky@gmail.com>
+-update ipv4 layer by Fisher Wu <fisherwky@gmail.com>
+* support IP-in-IP
